@@ -1,10 +1,14 @@
+using AuthorityConfig.Domain.Param;
 using AuthorityConfig.Infrastructure.AuthorityRepository.Sql.Config;
+using AuthorityConfig.Infrastructure.AuthorityRepository.Sql.Dao;
 using AuthorityConfig.Specification.Repository;
 using AuthorityConfig.Specification.Repository.Dao;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -16,45 +20,36 @@ namespace AuthorityConfig.Infrastructure.AuthorityRepository.Sql.IntegrationTest
         [Fact]
         public async Task SetConfigurationShouldNotFailAsync()
         {
-            try
-            {
-                var (repo, jsonSample) = Configure();
+            var (repo, jsonSample) = Configure();
 
-                var testConf = new AuthorityDao
-                {
-                    Authority = "TestAuthority",
-                    Description = "Test data",
-                    Json = jsonSample,
-                    Uri = "https://test-uri"
-                };
-
-                await repo.SetConfigurationAsync(testConf, CancellationToken.None);
-            }
-            catch (Exception ex)
+            var configParam = new SetConfigParam
             {
-                throw ex;
-            }
+                Authority = "TestAuthority",
+                Description = "Test data",
+                Config = JsonSerializer.Deserialize<ConfigDao>(jsonSample),
+                Uri = "https://test-uri"
+            };
+
+            await repo.SetConfigurationAsync(configParam, CancellationToken.None);   
         }
 
         //[Fact]
         public async Task GetConfigurationShouldNotFailAsync()
         {
-            try
-            {
-                var (repo, jsonSample) = Configure();
+            var (repo, jsonSample) = Configure();
 
-                var result = await repo.GetConfigurationAsync("TestAuthority", CancellationToken.None);
-
-                Assert.NotNull(result);
-                Assert.Equal("TestAuthority", result.Authority);
-                Assert.Equal("Test data", result.Description);
-                Assert.Equal(jsonSample, result.Json);
-                Assert.Equal("https://test-uri", result.Uri);
-            }
-            catch (Exception ex)
+            var param = new GetAuthorityParam
             {
-                throw ex;
-            }
+                Authority = "TestAuthority"
+            };
+
+            var result = await repo.GetAuthorityAsync(param, CancellationToken.None);
+
+            Assert.NotNull(result);
+            Assert.Equal("TestAuthority", result.Name);
+            Assert.Equal("Test data", result.Description);
+            //Assert.Equal(jsonSample, result.Json);
+            Assert.Equal("https://test-uri", result.Uri);
         }
 
         private static (IAuthorityRepository repo, string jsonSample) Configure()
